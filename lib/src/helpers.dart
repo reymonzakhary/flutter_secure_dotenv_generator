@@ -117,12 +117,12 @@ Set<String> getAllAccessorNames(InterfaceElement interface) {
 
   var supertypes = interface.allSupertypes.map((it) => it.element);
   for (var type in [interface, ...supertypes]) {
-    for (var accessor in type.accessors) {
-      if (accessor.isSetter) {
-        var name = accessor.name;
-        accessorNames.add(name.substring(0, name.length - 1));
-      } else {
-        accessorNames.add(accessor.name);
+    for (var field in type.fields) {
+      if (field.setter != null) {
+        accessorNames.add(field.name??"");
+      }
+      if (field.getter != null) {
+        accessorNames.add(field.name??"");
       }
     }
   }
@@ -141,14 +141,14 @@ List<EnvironmentField> getAccessors(
   var getters = <EnvironmentField>[];
   var setters = <EnvironmentField>[];
   for (var name in accessorNames) {
-    var getter = interface.augmented.lookUpGetter(name: name, library: library);
+    var getter = interface.lookUpGetter(name: name, library: library);
     if (getter != null) {
       var getterAnn =
-          getFieldAnnotation(getter.variable2!) ?? getFieldAnnotation(getter);
+          getFieldAnnotation(getter.variable) ?? getFieldAnnotation(getter);
       if (getterAnn != null) {
-        var field = getter.variable2!;
+        var field = getter.variable;
         getters.add(EnvironmentField(
-          field.name,
+          field.name??"",
           getterAnn.name,
           field.type,
           getterAnn.defaultValue,
@@ -156,15 +156,14 @@ List<EnvironmentField> getAccessors(
       }
     }
 
-    var setter =
-        interface.augmented.lookUpSetter(name: '$name=', library: library);
+    var setter = interface.lookUpSetter(name: '$name=', library: library);
     if (setter != null) {
       var setterAnn =
-          getFieldAnnotation(setter.variable2!) ?? getFieldAnnotation(setter);
+          getFieldAnnotation(setter.variable) ?? getFieldAnnotation(setter);
       if (setterAnn != null) {
-        var field = setter.variable2!;
+        var field = setter.variable;
         setters.add(EnvironmentField(
-          field.name,
+          field.name??"",
           setterAnn.name,
           field.type,
           setterAnn.defaultValue,

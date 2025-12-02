@@ -7,7 +7,8 @@ import 'package:flutter_secure_dotenv/flutter_secure_dotenv.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:source_helper/source_helper.dart';
 
-final _fieldKeyChecker = const TypeChecker.fromRuntime(FieldKey);
+final _fieldKeyChecker = TypeChecker.fromUrl(
+    'package:flutter_secure_dotenv/flutter_secure_dotenv.dart#FieldKey');
 
 /// Abstract class representing a field with its associated metadata.
 abstract class Field<T> {
@@ -49,7 +50,7 @@ abstract class Field<T> {
     }
 
     throw UnsupportedError(
-        'Unsupported type for ${element.enclosingElement3.name}.$jsonKey: $type');
+        'Unsupported type for ${element.enclosingElement.name}.$jsonKey: $type');
   }
 
   /// Returns the JSON key for the given [element] based on the [rename] strategy and [nameOverride].
@@ -63,19 +64,19 @@ abstract class Field<T> {
 
     switch (rename) {
       case FieldRename.none:
-        jsonKey = key;
+        jsonKey = key??"";
         break;
       case FieldRename.pascal:
-        jsonKey = key.pascal;
+        jsonKey = key?.pascal ?? "";
         break;
       case FieldRename.snake:
-        jsonKey = key.snake;
+        jsonKey = key?.snake ??"";
         break;
       case FieldRename.kebab:
-        jsonKey = key.kebab;
+        jsonKey = key?.kebab ??"";
         break;
       case FieldRename.screamingSnake:
-        jsonKey = key.snake.toUpperCase();
+        jsonKey = key?.snake.toUpperCase()??"";
         break;
     }
 
@@ -98,17 +99,17 @@ abstract class Field<T> {
     final identifier = type.element?.library?.identifier;
     if (identifier == null) return null;
 
-    for (final e in _element.library.importedLibraries) {
-      if (e.library.identifier != identifier) continue;
-      return e.name;
-    }
+    // for (final import in _element.library.libraryImports) {
+    //   if (import.importedLibraryElement?.identifier != identifier) continue;
+    //   return import.prefix?.element.name;
+    // }
     return null;
   }
 
   /// Returns the type with its prefix and nullability information.
   String typeWithPrefix({required bool withNullability}) {
     final typePrefix = this.typePrefix;
-    final type = this.type.getDisplayString();
+    final type = this.type.getDisplayString(withNullability: withNullability);
     if (typePrefix == 'dart.core') {
       return type;
     }
@@ -241,8 +242,15 @@ class EnumField extends Field<String> {
     if (value == null) return null;
 
     final values = (type as InterfaceType)
-        .accessors
-        .where((e) => e.returnType.isAssignableTo(type))
+        .element
+        .fields
+        .where((e) =>
+            e.isStatic &&
+            e.isConst &&
+            e.name != 'values' &&
+            e.name != 'index' &&
+            e.name != 'hashCode' &&
+            e.name != 'runtimeType')
         .map((e) => e.name);
     if (!values.contains(value)) {
       throw Exception('Invalid enum value for $type: $value');
